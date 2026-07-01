@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexa — AI Engineering & Clone Marketing for SMBs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<style>
+  :root{
+    --bg:#0a0a0b;
+    --bg-2:#0f0f11;
+    --fg:#f4f4ef;
+    --muted:#8a8a82;
+    --accent:#d4ff3a;
+    --accent-2:#ff7849;
+    --border:rgba(255,255,255,0.08);
+    --card:rgba(255,255,255,0.025);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:'DM Sans',sans-serif;
+    margin:0;
+    overflow-x:hidden;
+    cursor:none;
+  }
+  .font-display{font-family:'Sora',sans-serif;letter-spacing:-0.02em}
+  .font-mono{font-family:'JetBrains Mono',monospace}
+
+  /* Ambient background */
+  .ambient{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(800px circle at 15% 10%, rgba(212,255,58,0.06), transparent 60%),
+      radial-gradient(700px circle at 85% 80%, rgba(255,120,73,0.05), transparent 60%),
+      radial-gradient(circle at 50% 50%, rgba(255,255,255,0.015), transparent 70%);
+  }
+  .grain{
+    position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0.4;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Custom cursor */
+  .cursor-dot,.cursor-ring{
+    position:fixed;top:0;left:0;pointer-events:none;z-index:9999;
+    border-radius:50%;transform:translate(-50%,-50%);
+    transition:width .25s,height .25s,background .25s,border-color .25s;
+    mix-blend-mode:difference;
+  }
+  .cursor-dot{width:6px;height:6px;background:var(--accent)}
+  .cursor-ring{width:36px;height:36px;border:1px solid rgba(212,255,58,0.5)}
+  .cursor-ring.hover{width:64px;height:64px;border-color:var(--accent);background:rgba(212,255,58,0.08)}
+  @media (max-width:768px){.cursor-dot,.cursor-ring{display:none}body{cursor:auto}}
+
+  /* Scroll progress */
+  .scroll-progress{
+    position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    z-index:100;width:0%;box-shadow:0 0 12px var(--accent);
+  }
+
+  /* Nav */
+  .nav{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    backdrop-filter:blur(20px) saturate(180%);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+    background:rgba(10,10,11,0.55);
+    border-bottom:1px solid transparent;
+    transition:border-color .3s,background .3s;
+  }
+  .nav.scrolled{border-bottom-color:var(--border);background:rgba(10,10,11,0.85)}
+
+  /* Buttons */
+  .btn-primary{
+    background:var(--accent);color:#0a0a0b;font-weight:600;
+    padding:14px 26px;border-radius:999px;display:inline-flex;align-items:center;gap:10px;
+    transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s;
+    box-shadow:0 0 0 0 rgba(212,255,58,0.5);
+    position:relative;overflow:hidden;
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px -8px rgba(212,255,58,0.6)}
+  .btn-primary::before{
+    content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent,rgba(255,255,255,0.4),transparent);
+    transform:translateX(-100%);transition:transform .6s;
+  }
+  .btn-primary:hover::before{transform:translateX(100%)}
+  .btn-ghost{
+    border:1px solid var(--border);color:var(--fg);padding:13px 25px;border-radius:999px;
+    display:inline-flex;align-items:center;gap:10px;transition:all .3s;
+    background:rgba(255,255,255,0.02);
+  }
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);background:rgba(212,255,58,0.05)}
+
+  /* Tag */
+  .tag{
+    display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;
+    border:1px solid var(--border);background:rgba(255,255,255,0.03);
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;
+    color:var(--muted);
+  }
+  .tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* Hero canvas */
+  #hero-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+
+  /* Service cards */
+  .service-card{
+    position:relative;padding:36px;border-radius:24px;
+    background:var(--card);border:1px solid var(--border);
+    transition:transform .4s cubic-bezier(.2,.8,.2,1),border-color .4s,background .4s;
+    transform-style:preserve-3d;overflow:hidden;cursor:pointer;
+  }
+  .service-card::before{
+    content:'';position:absolute;inset:0;border-radius:24px;padding:1px;
+    background:linear-gradient(135deg,var(--accent),transparent 50%);
+    -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+    -webkit-mask-composite:xor;mask-composite:exclude;
+    opacity:0;transition:opacity .4s;
+  }
+  .service-card:hover::before{opacity:1}
+  .service-card:hover{transform:translateY(-6px);background:rgba(255,255,255,0.04)}
+  .service-card .icon-wrap{
+    width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    background:rgba(212,255,58,0.1);border:1px solid rgba(212,255,58,0.2);color:var(--accent);
+    transition:transform .4s;
+  }
+  .service-card:hover .icon-wrap{transform:scale(1.1) rotate(-5deg)}
+  .service-card.featured-service {
+    background: linear-gradient(180deg, rgba(212,255,58,0.05), rgba(212,255,58,0.01));
+    border-color: rgba(212,255,58,0.2);
+  }
+
+  /* Process steps */
+  .step{
+    position:relative;padding:32px;border-radius:20px;
+    border:1px solid var(--border);background:var(--card);
+    transition:all .4s;
+  }
+  .step:hover{border-color:rgba(212,255,58,0.3);background:rgba(212,255,58,0.02)}
+  .step-num{
+    font-family:'Sora',sans-serif;font-weight:300;font-size:64px;line-height:1;
+    background:linear-gradient(180deg,var(--accent),rgba(212,255,58,0.2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+
+  /* Demo terminal */
+  .terminal{
+    background:#0d0d0f;border:1px solid var(--border);border-radius:18px;
+    overflow:hidden;backdrop-filter:blur(20px);
+  }
+  .terminal-header{
+    padding:14px 18px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.02);
+  }
+  .term-dot{width:11px;height:11px;border-radius:50%}
+  .terminal-body{padding:24px;font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.7;min-height:380px}
+  .term-line{margin-bottom:8px;opacity:0;animation:fadeIn .4s forwards}
+  .term-prompt{color:var(--accent)}
+  .term-user{color:#9dc3ff}
+  .term-ai{color:var(--fg)}
+  .term-meta{color:var(--muted);font-size:11px}
+  .cursor-blink{display:inline-block;width:8px;height:14px;background:var(--accent);vertical-align:middle;animation:blink 1s infinite}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  /* Stat counters */
+  .stat-num{
+    font-family:'Sora',sans-serif;font-weight:700;font-size:72px;line-height:1;
+    background:linear-gradient(180deg,var(--fg),rgba(244,244,239,0.4));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    letter-spacing:-0.04em;
+  }
+
+  /* Case study cards */
+  .case-card{
+    position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--border);
+    transition:transform .5s cubic-bezier(.2,.8,.2,1);
+  }
+  .case-card:hover{transform:translateY(-8px)}
+  .case-card img{transition:transform .8s}
+  .case-card:hover img{transform:scale(1.08)}
+  .case-overlay{
+    position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(10,10,11,0.95) 95%);
+    display:flex;flex-direction:column;justify-content:flex-end;padding:28px;
+  }
+
+  /* Pricing */
+  .price-card{
+    position:relative;padding:36px;border-radius:24px;
+    background:var(--card);border:1px solid var(--border);
+    transition:all .4s;
+  }
+  .price-card:hover{border-color:rgba(212,255,58,0.3);transform:translateY(-4px)}
+  .price-card.featured{
+    background:linear-gradient(180deg,rgba(212,255,58,0.08),rgba(212,255,58,0.02));
+    border-color:rgba(212,255,58,0.3);
+  }
+  .price-card.featured::after{
+    content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+    background:var(--accent);color:#0a0a0b;font-size:11px;font-weight:600;
+    padding:5px 14px;border-radius:999px;letter-spacing:0.08em;text-transform:uppercase;
+  }
+
+  /* Testimonials */
+  .quote-card{
+    padding:32px;border-radius:20px;background:var(--card);border:1px solid var(--border);
+    transition:all .4s;
+  }
+  .quote-card:hover{border-color:rgba(212,255,58,0.2);background:rgba(255,255,255,0.04)}
+
+  /* Marquee */
+  .marquee{display:flex;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+  .marquee-track{display:flex;gap:60px;animation:scroll 30s linear infinite;flex-shrink:0;padding-right:60px}
+  @keyframes scroll{to{transform:translateX(-50%)}}
+
+  /* Reveal animation */
+  .reveal{opacity:0;transform:translateY(30px);transition:opacity .8s cubic-bezier(.2,.8,.2,1),transform .8s cubic-bezier(.2,.8,.2,1)}
+  .reveal.in{opacity:1;transform:translateY(0)}
+
+  /* Floating orbs */
+  .orb{
+    position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none;
+    animation:float 12s ease-in-out infinite;
+  }
+  @keyframes float{
+    0%,100%{transform:translate(0,0) scale(1)}
+    33%{transform:translate(30px,-40px) scale(1.1)}
+    66%{transform:translate(-20px,30px) scale(0.95)}
+  }
+
+  /* Section dividers */
+  .divider-line{
+    height:1px;background:linear-gradient(90deg,transparent,var(--border) 20%,var(--border) 80%,transparent);
+  }
+
+  /* Magnetic hover indicators */
+  .magnetic{transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+
+  /* Selection */
+  ::selection{background:var(--accent);color:#0a0a0b}
+
+  /* Scrollbar */
+  ::-webkit-scrollbar{width:10px}
+  ::-webkit-scrollbar-track{background:#0a0a0b}
+  ::-webkit-scrollbar-thumb{background:#222;border-radius:5px}
+  ::-webkit-scrollbar-thumb:hover{background:#333}
+
+  /* ================== CLONE PAGE OVERLAY ================== */
+  #clone-page {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 200;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  #clone-page.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .clone-hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: 
+      radial-gradient(circle at 20% 30%, rgba(212,255,58,0.08), transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(255,120,73,0.06), transparent 50%);
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient"></div>
+<div class="grain"></div>
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- ================== MAIN SITE ================== -->
+
+<!-- Navigation -->
+<nav class="nav" id="nav">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 h-[72px] flex items-center justify-between">
+    <a href="#" class="flex items-center gap-2.5 magnetic" data-hover>
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+        <path d="M6 26V6l20 20V6" stroke="#d4ff3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="font-display font-700 text-xl tracking-tight">nexa</span>
+    </a>
+    <div class="hidden md:flex items-center gap-9 text-sm text-[var(--muted)]">
+      <a href="#services" class="hover:text-[var(--fg)] transition magnetic" data-hover>Services</a>
+      <a href="#process" class="hover:text-[var(--fg)] transition magnetic" data-hover>Process</a>
+      <a href="#work" class="hover:text-[var(--fg)] transition magnetic" data-hover>Work</a>
+      <a href="#pricing" class="hover:text-[var(--fg)] transition magnetic" data-hover>Pricing</a>
+    </div>
+    <a href="#contact" class="btn-primary text-sm magnetic" data-hover>
+      Book a call
+      <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+    </a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden">
+  <canvas id="hero-canvas"></canvas>
+  <div class="orb" style="width:500px;height:500px;background:rgba(212,255,58,0.15);top:10%;left:-10%;"></div>
+  <div class="orb" style="width:400px;height:400px;background:rgba(255,120,73,0.12);bottom:5%;right:-5%;animation-delay:-4s"></div>
+
+  <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 w-full">
+    <div class="grid lg:grid-cols-12 gap-12 items-center">
+      <div class="lg:col-span-7">
+        <div class="tag mb-8"><span class="dot"></span>AI ENGINEERING · NORTH AMERICA</div>
+        <h1 class="font-display font-700 text-[clamp(2.8rem,7vw,5.8rem)] leading-[0.95] tracking-tight mb-7">
+          AI that actually<br>
+          moves your<br>
+          <span class="relative inline-block">
+            <span style="color:var(--accent)">numbers.</span>
+            <svg class="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none" preserveAspectRatio="none">
+              <path d="M2 8C50 3 150 3 298 8" stroke="#d4ff3a" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+            </svg>
+          </span>
+        </h1>
+        <p class="text-lg md:text-xl text-[var(--muted)] max-w-2xl mb-10 leading-relaxed">
+          We design, build, and deploy custom AI systems for small and mid-sized businesses. From AI clones that market your business 24/7 to support agents that close tickets overnight.
+        </p>
+        <div class="flex flex-wrap items-center gap-4 mb-16">
+          <a href="#contact" class="btn-primary magnetic" data-hover>
+            Book a strategy call
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </a>
+          <button id="open-clone-hero" class="btn-ghost magnetic" data-hover>
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            Explore Clone Marketing
+          </button>
+        </div>
+
+        <!-- Stats strip -->
+        <div class="grid grid-cols-3 gap-8 max-w-2xl pt-8 border-t border-[var(--border)]">
+          <div>
+            <div class="font-display font-700 text-3xl md:text-4xl text-[var(--accent)]">47</div>
+            <div class="text-sm text-[var(--muted)] mt-1">Systems shipped</div>
+          </div>
+          <div>
+            <div class="font-display font-700 text-3xl md:text-4xl">4.2×</div>
+            <div class="text-sm text-[var(--muted)] mt-1">Average ROI</div>
+          </div>
+          <div>
+            <div class="font-display font-700 text-3xl md:text-4xl">12</div>
+            <div class="text-sm text-[var(--muted)] mt-1">Industries served</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating glass cards -->
+      <div class="lg:col-span-5 relative hidden lg:block h-[500px]">
+        <div class="absolute top-0 right-0 w-72 p-5 rounded-2xl border border-[var(--border)] backdrop-blur-xl bg-white/[0.03]" style="animation:float 8s ease-in-out infinite">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-9 h-9 rounded-lg bg-[var(--accent)]/15 flex items-center justify-center text-[var(--accent)]">
+              <i data-lucide="bot" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-sm font-medium">Support Agent</div>
+              <div class="text-xs text-[var(--muted)]">Online · responding</div>
+            </div>
+          </div>
+          <div class="text-xs text-[var(--muted)] leading-relaxed">"Resolved 247 tickets this week. 89% without human escalation."</div>
+        </div>
+        <div class="absolute top-40 left-0 w-64 p-5 rounded-2xl border border-[var(--border)] backdrop-blur-xl bg-white/[0.03]" style="animation:float 10s ease-in-out infinite;animation-delay:-3s">
+          <div class="text-xs text-[var(--muted)] mb-2 font-mono">DEMAND FORECAST</div>
+          <div class="flex items-end gap-1.5 h-16 mb-2">
+            <div class="flex-1 bg-[var(--accent)]/30 rounded-t" style="height:40%"></div>
+            <div class="flex-1 bg-[var(--accent)]/40 rounded-t" style="height:55%"></div>
+            <div class="flex-1 bg-[var(--accent)]/60 rounded-t" style="height:70%"></div>
+            <div class="flex-1 bg-[var(--accent)]/80 rounded-t" style="height:85%"></div>
+            <div class="flex-1 bg-[var(--accent)] rounded-t" style="height:100%"></div>
+            <div class="flex-1 bg-[var(--accent)]/70 rounded-t" style="height:75%"></div>
+          </div>
+          <div class="text-xs text-[var(--muted)]">Next 6 weeks · 94% confidence</div>
+        </div>
+        <div class="absolute bottom-0 right-8 w-60 p-5 rounded-2xl border border-[var(--border)] backdrop-blur-xl bg-white/[0.03]" style="animation:float 9s ease-in-out infinite;animation-delay:-5s">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-xs text-[var(--muted)] font-mono">COST SAVED</div>
+            <i data-lucide="trending-up" class="w-4 h-4 text-[var(--accent)]"></i>
+          </div>
+          <div class="font-display font-700 text-2xl">$148,200</div>
+          <div class="text-xs text-[var(--muted)] mt-1">Last 90 days · vs. manual ops</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll cue -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-[var(--muted)] text-xs font-mono tracking-wider">
+    <span>SCROLL</span>
+    <div class="w-px h-10 bg-gradient-to-b from-[var(--accent)] to-transparent"></div>
+  </div>
+</section>
+
+<!-- Trusted by -->
+<section class="py-12 border-y border-[var(--border)] relative z-10">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <p class="text-center text-xs font-mono tracking-[0.2em] text-[var(--muted)] mb-8">TRUSTED BY OPERATORS AT</p>
+    <div class="marquee">
+      <div class="marquee-track">
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Northwind Logistics</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Halden & Co.</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Meridian Dental</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Brightside DTC</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Vector Manufacturing</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Cedar & Pine</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Orchard Insurance</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Northwind Logistics</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Halden & Co.</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Meridian Dental</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Brightside DTC</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Vector Manufacturing</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Cedar & Pine</span>
+        <span class="font-display font-600 text-2xl text-[var(--muted)]">Orchard Insurance</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Services -->
+<section id="services" class="py-32 relative z-10">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6 reveal">
+      <div>
+        <div class="tag mb-5"><span class="dot"></span>SERVICES</div>
+        <h2 class="font-display font-700 text-5xl md:text-6xl tracking-tight leading-[1.05] max-w-2xl">
+          Production AI,<br>not science projects.
+        </h2>
+      </div>
+      <p class="text-[var(--muted)] max-w-md text-lg leading-relaxed">
+        Six focused engagements. Each ships in weeks, integrates with your stack, and is owned by your team after handoff.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- CLONE MARKETING CARD (FLAGSHIP) -->
+      <div id="open-clone-card" class="service-card featured-service reveal magnetic" data-hover>
+        <div class="flex items-center justify-between mb-6">
+          <div class="icon-wrap"><i data-lucide="sparkles" class="w-6 h-6"></i></div>
+          <span class="text-[10px] font-mono text-[var(--accent)] border border-[var(--accent)]/30 px-2 py-1 rounded-full">FLAGSHIP</span>
+        </div>
+        <h3 class="font-display font-600 text-xl mb-3">AI Clone Marketing</h3>
+        <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">Be the face of your brand without the camera. We create hyper-realistic digital twins of business owners to generate daily, high-converting marketing videos.</p>
+        <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+          <span>Click to view dedicated page</span>
+          <i data-lucide="arrow-up-right" class="w-3 h-3"></i>
+        </div>
+      </div>
+
+      <div class="service-card reveal magnetic" data-hover>
+        <div class="icon-wrap mb-6"><i data-lucide="bot" class="w-6 h-6"></i></div>
+        <h3 class="font-display font-600 text-xl mb-3">AI Agents & Automation</h3>
+        <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">Autonomous workflows that handle support tickets, lead qualification, scheduling, and internal requests — 24/7, in your brand voice.</p>
+        <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+          <span>GPT-4o · Claude · LangGraph</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal magnetic" data-hover>
+        <div class="icon-wrap mb-6"><i data-lucide="boxes" class="w-6 h-6"></i></div>
+        <h3 class="font-display font-600 text-xl mb-3">Custom LLM Applications</h3>
+        <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">Tailored copilots trained on your data — for sales, ops, legal, or product. Embedded in the tools your team already uses.</p>
+        <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+          <span>RAG · Fine-tuning · Eval harness</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal magnetic" data-hover>
+        <div class="icon-wrap mb-6"><i data-lucide="eye" class="w-6 h-6"></i></div>
+        <h3 class="font-display font-600 text-xl mb-3">Computer Vision</h3>
+        <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">Defect detection, OCR, safety monitoring, and inventory counting. Edge-deployed for factories, warehouses, and field operations.</p>
+        <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+          <span>YOLO · ViT · Edge TPU</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal magnetic" data-hover>
+        <div class="icon-wrap mb-6"><i data-lucide="line-chart" class="w-6 h-6"></i></div>
+        <h3 class="font-display font-600 text-xl mb-3">Predictive Analytics</h3>
+        <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">Forecast demand, churn, pricing, and risk. Models that plug into your dashboards and retrain automatically as new data arrives.</p>
+        <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+          <span>XGBoost · Prophet · PyTorch</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal magnetic" data-hover>
+        <div class="icon-wrap mb-6"><i data-lucide="database" class="w-6 h-6"></i></div>
+        <h3 class="font-display font-600 text-xl mb-3">Knowledge Infrastructure</h3>
+        <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">Vector search, semantic caching, and retrieval pipelines that turn your documents, tickets, and calls into a queryable asset.</p>
+        <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+          <span>Pinecone · pgvector · LlamaIndex</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- Process -->
+<section id="process" class="py-32 relative z-10">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="text-center mb-20 reveal">
+      <div class="tag mb-5"><span class="dot"></span>HOW WE WORK</div>
+      <h2 class="font-display font-700 text-5xl md:text-6xl tracking-tight leading-[1.05]">
+        From kickoff to production<br>in <span style="color:var(--accent)">30 days.</span>
+      </h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div class="step reveal">
+        <div class="step-num mb-4">01</div>
+        <h3 class="font-display font-600 text-lg mb-3">Discover</h3>
+        <p class="text-[var(--muted)] text-sm leading-relaxed mb-4">One-week deep dive. We map your data, workflows, and constraints — and identify the highest-leverage AI opportunity.</p>
+        <div class="text-xs font-mono text-[var(--accent)]">Week 1</div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num mb-4">02</div>
+        <h3 class="font-display font-600 text-lg mb-3">Prototype</h3>
+        <p class="text-[var(--muted)] text-sm leading-relaxed mb-4">Working demo on your real data. You see the outcome before committing to a build. No black boxes, no slideware.</p>
+        <div class="text-xs font-mono text-[var(--accent)]">Weeks 2–3</div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num mb-4">03</div>
+        <h3 class="font-display font-600 text-lg mb-3">Deploy</h3>
+        <p class="text-[var(--muted)] text-sm leading-relaxed mb-4">Production rollout inside your infrastructure. Monitoring, evals, and rollback built in. Your team owns the keys.</p>
+        <div class="text-xs font-mono text-[var(--accent)]">Week 4</div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num mb-4">04</div>
+        <h3 class="font-display font-600 text-lg mb-3">Scale</h3>
+        <p class="text-[var(--muted)] text-sm leading-relaxed mb-4">Monthly optimization, new use cases, and model upgrades as your data compounds. We're on call as your AI team.</p>
+        <div class="text-xs font-mono text-[var(--accent)]">Ongoing</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- Stats -->
+<section class="py-32 relative z-10">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12 text-center">
+      <div class="reveal">
+        <div class="stat-num mb-3" data-count="14">$0M+</div>
+        <div class="text-[var(--muted)] text-sm">Value delivered to clients</div>
+      </div>
+      <div class="reveal">
+        <div class="stat-num mb-3" data-count="47">0</div>
+        <div class="text-[var(--muted)] text-sm">AI systems in production</div>
+      </div>
+      <div class="reveal">
+        <div class="stat-num mb-3" data-count="98">0%</div>
+        <div class="text-[var(--muted)] text-sm">Client retention rate</div>
+      </div>
+      <div class="reveal">
+        <div class="stat-num mb-3" data-count="30">0</div>
+        <div class="text-[var(--muted)] text-sm">Days to first deployment</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- Case studies -->
+<section id="work" class="py-32 relative z-10">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6 reveal">
+      <div>
+        <div class="tag mb-5"><span class="dot"></span>SELECTED WORK</div>
+        <h2 class="font-display font-700 text-5xl md:text-6xl tracking-tight leading-[1.05]">
+          Real systems.<br>Real returns.
+        </h2>
+      </div>
+      <a href="#contact" class="btn-ghost magnetic" data-hover>
+        View full portfolio
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </a>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div class="case-card reveal magnetic" data-hover>
+        <img src="https://picsum.photos/seed/logistics-ai/600/700.jpg" alt="" class="w-full h-[420px] object-cover">
+        <div class="case-overlay">
+          <div class="text-xs font-mono text-[var(--accent)] mb-2">LOGISTICS · ROUTE OPTIMIZATION</div>
+          <h3 class="font-display font-600 text-2xl mb-3">23% fuel savings across 140 trucks</h3>
+          <p class="text-sm text-[var(--muted)]">Custom routing model trained on 3 years of telematics. Deployed in 6 weeks.</p>
+        </div>
+      </div>
+      <div class="case-card reveal magnetic" data-hover>
+        <img src="https://picsum.photos/seed/dtc-skincare/600/700.jpg" alt="" class="w-full h-[420px] object-cover">
+        <div class="case-overlay">
+          <div class="text-xs font-mono text-[var(--accent)] mb-2">DTC RETAIL · SUPPORT AGENT</div>
+          <h3 class="font-display font-600 text-2xl mb-3">68% ticket deflection in 90 days</h3>
+          <p class="text-sm text-[var(--muted)]">Autonomous agent handling returns, shipping, and product Q&A across email and chat.</p>
+        </div>
+      </div>
+      <div class="case-card reveal magnetic" data-hover>
+        <img src="https://picsum.photos/seed/dental-clinic/600/700.jpg" alt="" class="w-full h-[420px] object-cover">
+        <div class="case-overlay">
+          <div class="text-xs font-mono text-[var(--accent)] mb-2">HEALTHCARE · PREDICTIVE SCHEDULING</div>
+          <h3 class="font-display font-600 text-2xl mb-3">31% fewer no-shows across 22 locations</h3>
+          <p class="text-sm text-[var(--muted)]">Demand forecasting + smart reminders. ROI positive in month one.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- Pricing -->
+<section id="pricing" class="py-32 relative z-10">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10">
+    <div class="text-center mb-20 reveal">
+      <div class="tag mb-5"><span class="dot"></span>ENGAGEMENT MODELS</div>
+      <h2 class="font-display font-700 text-5xl md:text-6xl tracking-tight leading-[1.05]">
+        Pricing that scales<br>with your conviction.
+      </h2>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-5 max-w-6xl mx-auto">
+      <div class="price-card reveal magnetic" data-hover>
+        <div class="text-xs font-mono text-[var(--muted)] mb-2">STARTER</div>
+        <h3 class="font-display font-600 text-2xl mb-4">Pilot Sprint</h3>
+        <p class="text-sm text-[var(--muted)] mb-6">A focused 2-week build to prove AI works on your problem.</p>
+        <div class="mb-6">
+          <span class="font-display font-700 text-4xl">$8K</span>
+          <span class="text-[var(--muted)] text-sm"> · fixed</span>
+        </div>
+        <ul class="space-y-3 text-sm mb-8">
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Use case discovery workshop</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Working prototype on your data</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>ROI model & deployment plan</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Code & ownership transfer</li>
+        </ul>
+        <a href="#contact" class="btn-ghost w-full justify-center">Start a pilot</a>
+      </div>
+
+      <div class="price-card featured reveal magnetic" data-hover>
+        <div class="text-xs font-mono text-[var(--accent)] mb-2">GROWTH</div>
+        <h3 class="font-display font-600 text-2xl mb-4">Embedded AI Team</h3>
+        <p class="text-sm text-[var(--muted)] mb-6">A dedicated pod that designs, ships, and operates AI across your business.</p>
+        <div class="mb-6">
+          <span class="font-display font-700 text-4xl">$25K</span>
+          <span class="text-[var(--muted)] text-sm"> /mo</span>
+        </div>
+        <ul class="space-y-3 text-sm mb-8">
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Dedicated engineer + ML lead</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Up to 3 production systems</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Monitoring, evals, retraining</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Weekly office hours & SLA</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Slack channel with your team</li>
+        </ul>
+        <a href="#contact" class="btn-primary w-full justify-center">Book a call</a>
+      </div>
+
+      <div class="price-card reveal magnetic" data-hover>
+        <div class="text-xs font-mono text-[var(--muted)] mb-2">ENTERPRISE</div>
+        <h3 class="font-display font-600 text-2xl mb-4">Full Transformation</h3>
+        <p class="text-sm text-[var(--muted)] mb-6">Multi-system AI programs with governance, security, and change management.</p>
+        <div class="mb-6">
+          <span class="font-display font-700 text-4xl">Custom</span>
+        </div>
+        <ul class="space-y-3 text-sm mb-8">
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Multi-quarter roadmap</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>SOC 2 & HIPAA-ready deployments</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>On-prem / VPC options</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Executive reporting & QBRs</li>
+          <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Team training & enablement</li>
+        </ul>
+        <a href="#contact" class="btn-ghost w-full justify-center">Talk to us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section id="contact" class="py-32 relative z-10 overflow-hidden">
+  <div class="orb" style="width:600px;height:600px;background:rgba(212,255,58,0.18);top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+  <div class="max-w-5xl mx-auto px-6 lg:px-10 text-center relative">
+    <div class="tag mb-8 reveal"><span class="dot"></span>READY WHEN YOU ARE</div>
+    <h2 class="font-display font-700 text-[clamp(2.5rem,7vw,6rem)] tracking-tight leading-[0.95] mb-8 reveal">
+      Let's ship your first<br>AI system in <span style="color:var(--accent)">30 days.</span>
+    </h2>
+    <p class="text-lg md:text-xl text-[var(--muted)] max-w-2xl mx-auto mb-12 reveal">
+      Book a 30-minute strategy call. We'll map one high-leverage AI opportunity in your business — no slides, no obligation.
+    </p>
+    <div class="flex flex-wrap items-center justify-center gap-4 reveal">
+      <a href="#" class="btn-primary text-base magnetic" data-hover>
+        Book a strategy call
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </a>
+      <a href="mailto:hello@nexa.ai" class="btn-ghost text-base magnetic" data-hover>
+        <i data-lucide="mail" class="w-4 h-4"></i>
+        hello@nexa.ai
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="border-t border-[var(--border)] relative z-10">
+  <div class="max-w-7xl mx-auto px-6 lg:px-10 py-16">
+    <div class="grid md:grid-cols-12 gap-10 mb-12">
+      <div class="md:col-span-5">
+        <a href="#" class="flex items-center gap-2.5 mb-5">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <path d="M6 26V6l20 20V6" stroke="#d4ff3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="font-display font-700 text-xl">nexa</span>
+        </a>
+        <p class="text-[var(--muted)] text-sm max-w-sm leading-relaxed">AI engineering for small and mid-sized businesses across North America. We turn model capabilities into measurable operating outcomes.</p>
+      </div>
+      <div class="md:col-span-2">
+        <div class="text-xs font-mono text-[var(--muted)] mb-4">SERVICES</div>
+        <ul class="space-y-2 text-sm">
+          <li><a href="#" id="footer-clone-link" class="hover:text-[var(--accent)] transition">AI Clone Marketing</a></li>
+          <li><a href="#services" class="hover:text-[var(--accent)] transition">AI Agents</a></li>
+          <li><a href="#services" class="hover:text-[var(--accent)] transition">Custom LLMs</a></li>
+          <li><a href="#services" class="hover:text-[var(--accent)] transition">Computer Vision</a></li>
+        </ul>
+      </div>
+      <div class="md:col-span-2">
+        <div class="text-xs font-mono text-[var(--muted)] mb-4">COMPANY</div>
+        <ul class="space-y-2 text-sm">
+          <li><a href="#work" class="hover:text-[var(--accent)] transition">Work</a></li>
+          <li><a href="#process" class="hover:text-[var(--accent)] transition">Process</a></li>
+          <li><a href="#pricing" class="hover:text-[var(--accent)] transition">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="md:col-span-3">
+        <div class="text-xs font-mono text-[var(--muted)] mb-4">GET IN TOUCH</div>
+        <ul class="space-y-2 text-sm">
+          <li><a href="mailto:hello@nexa.ai" class="hover:text-[var(--accent)] transition">hello@nexa.ai</a></li>
+          <li class="text-[var(--muted)]">Austin · Toronto</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between gap-4 text-xs text-[var(--muted)]">
+      <div>© 2025 Nexa AI Inc. All rights reserved.</div>
+      <div class="flex gap-6">
+        <a href="#" class="hover:text-[var(--fg)] transition">Privacy</a>
+        <a href="#" class="hover:text-[var(--fg)] transition">Terms</a>
+        <a href="#" class="hover:text-[var(--fg)] transition">Security</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ================== CLONE MARKETING PAGE (HIDDEN OVERLAY) ================== -->
+<div id="clone-page">
+  <div class="clone-hero-bg"></div>
+  
+  <!-- Clone Page Nav -->
+  <nav class="nav scrolled" style="background:rgba(10,10,11,0.9);">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10 h-[72px] flex items-center justify-between">
+      <button id="close-clone-page" class="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--fg)] transition magnetic" data-hover>
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        Back to Nexa
+      </button>
+      <a href="#clone-contact" class="btn-primary text-sm magnetic" data-hover>
+        Clone yourself
+        <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Clone Hero -->
+  <section class="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden">
+    <div class="orb" style="width:500px;height:500px;background:rgba(212,255,58,0.15);top:10%;left:-10%;"></div>
+    <div class="orb" style="width:400px;height:400px;background:rgba(255,120,73,0.12);bottom:5%;right:-5%;animation-delay:-4s"></div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 w-full">
+      <div class="grid lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-7">
+          <div class="tag mb-8"><span class="dot"></span>AI CLONE MARKETING · NORTH AMERICA</div>
+          <h1 class="font-display font-700 text-[clamp(2.8rem,7vw,5.8rem)] leading-[0.95] tracking-tight mb-7">
+            Be the face of<br>
+            your brand,<br>
+            <span class="relative inline-block">
+            <span style="color:var(--accent)">without the camera.</span>
+            <svg class="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none" preserveAspectRatio="none">
+              <path d="M2 8C50 3 150 3 298 8" stroke="#d4ff3a" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+            </svg>
+          </span>
+        </h1>
+        <p class="text-lg md:text-xl text-[var(--muted)] max-w-2xl mb-10 leading-relaxed">
+          We create hyper-realistic AI clones of business owners to generate daily, high-converting marketing videos. Scale your personal brand across TikTok, Reels, and YouTube—without you ever stepping in front of a lens.
+        </p>
+        <div class="flex flex-wrap items-center gap-4 mb-16">
+          <a href="#clone-contact" class="btn-primary magnetic" data-hover>
+            Build my AI clone
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </a>
+          <a href="#clone-demo" class="btn-ghost magnetic" data-hover>
+            <i data-lucide="play" class="w-4 h-4"></i>
+            See clones in action
+          </a>
+        </div>
+
+        <div class="grid grid-cols-3 gap-8 max-w-2xl pt-8 border-t border-[var(--border)]">
+          <div>
+            <div class="font-display font-700 text-3xl md:text-4xl text-[var(--accent)]">120+</div>
+            <div class="text-sm text-[var(--muted)] mt-1">Owner clones built</div>
+          </div>
+          <div>
+            <div class="font-display font-700 text-3xl md:text-4xl">8.4M</div>
+            <div class="text-sm text-[var(--muted)] mt-1">Views generated</div>
+          </div>
+          <div>
+            <div class="font-display font-700 text-3xl md:text-4xl">30h+</div>
+            <div class="text-sm text-[var(--muted)] mt-1">Saved monthly per client</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating glass cards -->
+      <div class="lg:col-span-5 relative hidden lg:block h-[500px]">
+        <div class="absolute top-0 right-0 w-72 p-5 rounded-2xl border border-[var(--border)] backdrop-blur-xl bg-white/[0.03]" style="animation:float 8s ease-in-out infinite">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-9 h-9 rounded-lg bg-[var(--accent)]/15 flex items-center justify-center text-[var(--accent)]">
+              <i data-lucide="video" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-sm font-medium">Clone Rendering</div>
+              <div class="text-xs text-[var(--muted)]">Video #14 today · Rendering</div>
+            </div>
+          </div>
+          <div class="text-xs text-[var(--muted)] leading-relaxed">"Hey guys, quick tip on how to winterize your HVAC system before..."</div>
+        </div>
+        <div class="absolute top-40 left-0 w-64 p-5 rounded-2xl border border-[var(--border)] backdrop-blur-xl bg-white/[0.03]" style="animation:float 10s ease-in-out infinite;animation-delay:-3s">
+          <div class="text-xs text-[var(--muted)] mb-2 font-mono">VIDEO ANALYTICS</div>
+          <div class="flex items-end gap-1.5 h-16 mb-2">
+            <div class="flex-1 bg-[var(--accent)]/30 rounded-t" style="height:40%"></div>
+            <div class="flex-1 bg-[var(--accent)]/40 rounded-t" style="height:55%"></div>
+            <div class="flex-1 bg-[var(--accent)]/60 rounded-t" style="height:70%"></div>
+            <div class="flex-1 bg-[var(--accent)]/80 rounded-t" style="height:85%"></div>
+            <div class="flex-1 bg-[var(--accent)] rounded-t" style="height:100%"></div>
+            <div class="flex-1 bg-[var(--accent)]/70 rounded-t" style="height:75%"></div>
+          </div>
+          <div class="text-xs text-[var(--muted)]">142k views · 8% CTR · 2.4k leads</div>
+        </div>
+        <div class="absolute bottom-0 right-8 w-60 p-5 rounded-2xl border border-[var(--border)] backdrop-blur-xl bg-white/[0.03]" style="animation:float 9s ease-in-out infinite;animation-delay:-5s">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-xs text-[var(--muted)] font-mono">TIME SAVED</div>
+            <i data-lucide="clock" class="w-4 h-4 text-[var(--accent)]"></i>
+          </div>
+          <div class="font-display font-700 text-2xl">148 hours</div>
+          <div class="text-xs text-[var(--muted)] mt-1">Last 30 days · No filming required</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </section>
+
+  <!-- Clone Services -->
+  <section class="py-32 relative z-10">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+      <div class="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6 reveal">
+        <div>
+          <div class="tag mb-5"><span class="dot"></span>CLONE CAPABILITIES</div>
+          <h2 class="font-display font-700 text-5xl md:text-6xl tracking-tight leading-[1.05] max-w-2xl">
+            Clone yourself.<br>Scale your brand.
+          </h2>
+        </div>
+        <p class="text-[var(--muted)] max-w-md text-lg leading-relaxed">
+          We handle everything from training your digital twin to writing scripts and posting daily videos. You just approve the content.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div class="service-card reveal magnetic" data-hover>
+          <div class="icon-wrap mb-6"><i data-lucide="user-check" class="w-6 h-6"></i></div>
+          <h3 class="font-display font-600 text-xl mb-3">Hyper-Realistic AI Clones</h3>
+          <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">We train a studio-grade digital twin using just 10 minutes of your footage. Perfect voice, facial expressions, and hand gestures—indistinguishable from the real you.</p>
+          <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+            <span>HeyGen · ElevenLabs · Custom VAE</span>
+          </div>
+        </div>
+        <div class="service-card reveal magnetic" data-hover>
+          <div class="icon-wrap mb-6"><i data-lucide="file-text" class="w-6 h-6"></i></div>
+          <h3 class="font-display font-600 text-xl mb-3">Script-to-Video Engine</h3>
+          <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">Our AI studies your offers and target audience to write high-converting hooks and scripts. It then automatically generates your clone delivering the message.</p>
+          <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+            <span>GPT-4o · Claude · Brand Voice Training</span>
+          </div>
+        </div>
+        <div class="service-card reveal magnetic" data-hover>
+          <div class="icon-wrap mb-6"><i data-lucide="share-2" class="w-6 h-6"></i></div>
+          <h3 class="font-display font-600 text-xl mb-3">Multi-Platform Distribution</h3>
+          <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">We automatically format and post your clone videos to TikTok, Instagram Reels, and YouTube Shorts daily. Optimized hashtags, captions, and trends included.</p>
+          <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+            <span>API Integration · Auto-Scheduling</span>
+          </div>
+        </div>
+        <div class="service-card reveal magnetic" data-hover>
+          <div class="icon-wrap mb-6"><i data-lucide="languages" class="w-6 h-6"></i></div>
+          <h3 class="font-display font-600 text-xl mb-3">Global Language Localization</h3>
+          <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">Expand into new markets instantly. Your clone can fluently speak 30+ languages with perfect lip-syncing, allowing you to dominate international demographics.</p>
+          <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+            <span>Lip-Sync AI · Voice Cloning</span>
+          </div>
+        </div>
+        <div class="service-card reveal magnetic" data-hover>
+          <div class="icon-wrap mb-6"><i data-lucide="sparkles" class="w-6 h-6"></i></div>
+          <h3 class="font-display font-600 text-xl mb-3">Personalized Outreach at Scale</h3>
+          <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">Generate thousands of custom videos for leads, where your clone addresses them by name and company. Perfect for B2B cold outreach and VIP client follow-ups.</p>
+          <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+            <span>Dynamic Variables · CRM Sync</span>
+          </div>
+        </div>
+        <div class="service-card reveal magnetic" data-hover>
+          <div class="icon-wrap mb-6"><i data-lucide="bar-chart-3" class="w-6 h-6"></i></div>
+          <h3 class="font-display font-600 text-xl mb-3">Performance & A/B Testing</h3>
+          <p class="text-[var(--muted)] text-sm leading-relaxed mb-5">We constantly test different hooks, scripts, and visual styles. Our dashboard tracks view velocity, retention, and conversion rates to optimize your clone's output weekly.</p>
+          <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
+            <span>Analytics · ROI Tracking</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider-line"></div>
+
+  <!-- Clone Process -->
+  <section class="py-32 relative z-10">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+      <div class="text-center mb-20 reveal">
+        <div class="tag mb-5"><span class="dot"></span>HOW IT WORKS</div>
+        <h2 class="font-display font-700 text-5xl md:text-6xl tracking-tight leading-[1.05]">
+          From filming to viral<br>in <span style="color:var(--accent)">14 days.</span>
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="step reveal">
+          <div class="step-num mb-4">01</div>
+          <h3 class="font-display font-600 text-lg mb-3">Capture</h3>
+          <p class="text-[var(--muted)] text-sm leading-relaxed mb-4">We send you a simple guide. You record 10 minutes of footage on your phone. That's all we need to build your digital twin.</p>
+          <div class="text-xs font-mono text-[var(--accent)]">Day 1</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-num mb-4">02</div>
+          <h3 class="font-display font-600 text-lg mb-3">Train</h3>
+          <p class="text-[var(--muted)] text-sm leading-relaxed mb-4">Our team processes your footage, clones your voice, and trains the AI on your brand's specific offers, tone, and target audience.</p>
+          <div class="text-xs font-mono text-[var(--accent)]">Days 2-7</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-num mb-4">03</div>
+          <h3 class="font-display font-600 text-lg mb-3">Generate</h3>
+          <p class="text-[var(--muted)] text-sm leading-relaxed mb-4">We generate your first batch of 30 marketing videos. You review them in our dashboard, approve, or request tweaks with one click.</p>
+          <div class="text-xs font-mono text-[var(--accent)]">Days 8-12</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-num mb-4">04</div>
+          <h3 class="font-display font-600 text-lg mb-3">Scale</h3>
+          <p class="text-[var(--muted)] text-sm leading-relaxed mb-4">We schedule and post daily videos across your socials. You get a weekly performance report and fresh content ideas automatically.</p>
+          <div class="text-xs font-mono text-[var(--accent)]">Day 14+</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider-line"></div>
+
+  <!-- Clone Live Demo -->
+  <section id="clone-demo" class="py-32 relative z-10">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+      <div class="grid lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-5 reveal">
+          <div class="tag mb-5"><span class="dot"></span>LIVE PREVIEW</div>
+          <h2 class="font-display font-700 text-4xl md:text-5xl tracking-tight leading-[1.1] mb-6">
+            Watch an AI clone generate a video in real time.
+          </h2>
+          <p class="text-[var(--muted)] text-lg leading-relaxed mb-8">
+            This is a backend look at our engine. A user requests a video about a new tax law. The AI writes the script, maps the phonemes to your cloned voice, and renders the lip-synced video—automatically.
+          </p>
+          <ul class="space-y-3 text-sm">
+            <li class="flex items-start gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-[var(--accent)] flex-shrink-0 mt-0.5"></i><span>Generate 100s of videos without retakes</span></li>
+            <li class="flex items-start gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-[var(--accent)] flex-shrink-0 mt-0.5"></i><span>Update scripts instantly without re-filming</span></li>
+            <li class="flex items-start gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-[var(--accent)] flex-shrink-0 mt-0.5"></i><span>Perfect lip-sync and natural hand gestures</span></li>
+          </ul>
+        </div>
+        <div class="lg:col-span-7 reveal">
+          <div class="terminal">
+            <div class="terminal-header">
+              <div class="term-dot" style="background:#ff5f57"></div>
+              <div class="term-dot" style="background:#febc2e"></div>
+              <div class="term-dot" style="background:#28c840"></div>
+              <span class="text-xs text-[var(--muted)] font-mono ml-3">nexa-clone-engine · session #8921</span>
+            </div>
+            <div class="terminal-body" id="terminalBodyClone">
+              <!-- Lines injected by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider-line"></div>
+
+  <!-- Clone Pricing -->
+  <section id="clone-pricing" class="py-32 relative z-10">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+      <div class="text-center mb-20 reveal">
+        <div class="tag mb-5"><span class="dot"></span>CLONE ENGAGEMENT MODELS</div>
+        <h2 class="font-display font-700 text-5xl md:text-6xl tracking-tight leading-[1.05]">
+          Pricing that scales<br>with your content needs.
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-5 max-w-6xl mx-auto">
+        <div class="price-card reveal magnetic" data-hover>
+          <div class="text-xs font-mono text-[var(--muted)] mb-2">STARTER</div>
+          <h3 class="font-display font-600 text-2xl mb-4">The Single Clone</h3>
+          <p class="text-sm text-[var(--muted)] mb-6">Perfect for founders who want to test AI video on their personal brand.</p>
+          <div class="mb-6">
+            <span class="font-display font-700 text-4xl">$1,500</span>
+            <span class="text-[var(--muted)] text-sm"> /mo</span>
+          </div>
+          <ul class="space-y-3 text-sm mb-8">
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>1 hyper-realistic AI clone</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>10 custom videos per month</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>AI script generation</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>1 language / 1 platform</li>
+          </ul>
+          <a href="#clone-contact" class="btn-ghost w-full justify-center">Start small</a>
+        </div>
+
+        <div class="price-card featured reveal magnetic" data-hover>
+          <div class="text-xs font-mono text-[var(--accent)] mb-2">GROWTH</div>
+          <h3 class="font-display font-600 text-2xl mb-4">The Content Machine</h3>
+          <p class="text-sm text-[var(--muted)] mb-6">Daily video output across multiple platforms to dominate your niche.</p>
+          <div class="mb-6">
+            <span class="font-display font-700 text-4xl">$4,500</span>
+            <span class="text-[var(--muted)] text-sm"> /mo</span>
+          </div>
+          <ul class="space-y-3 text-sm mb-8">
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>1 clone + voice matching</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>30 custom videos per month</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Auto-posting to TikTok, Reels, YT</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>3 languages included</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Monthly performance strategy call</li>
+          </ul>
+          <a href="#clone-contact" class="btn-primary w-full justify-center">Build my clone</a>
+        </div>
+
+        <div class="price-card reveal magnetic" data-hover>
+          <div class="text-xs font-mono text-[var(--muted)] mb-2">ENTERPRISE</div>
+          <h3 class="font-display font-600 text-2xl mb-4">Media Empire</h3>
+          <p class="text-sm text-[var(--muted)] mb-6">For agencies and multi-brand operators who need infinite content.</p>
+          <div class="mb-6">
+            <span class="font-display font-700 text-4xl">Custom</span>
+          </div>
+          <ul class="space-y-3 text-sm mb-8">
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Up to 5 different clones</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Unlimited video rendering</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>30+ languages & custom voices</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>B2B personalized outreach engine</li>
+            <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 text-[var(--accent)] mt-0.5"></i>Dedicated account manager</li>
+          </ul>
+          <a href="#clone-contact" class="btn-ghost w-full justify-center">Talk to us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Clone Final CTA -->
+  <section id="clone-contact" class="py-32 relative z-10 overflow-hidden">
+    <div class="orb" style="width:600px;height:600px;background:rgba(212,255,58,0.18);top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+    <div class="max-w-5xl mx-auto px-6 lg:px-10 text-center relative">
+      <div class="tag mb-8 reveal"><span class="dot"></span>READY WHEN YOU ARE</div>
+      <h2 class="font-display font-700 text-[clamp(2.5rem,7vw,6rem)] tracking-tight leading-[0.95] mb-8 reveal">
+        Clone yourself in<br>the next <span style="color:var(--accent)">14 days.</span>
+      </h2>
+      <p class="text-lg md:text-xl text-[var(--muted)] max-w-2xl mx-auto mb-12 reveal">
+        Book a 30-minute strategy call. We'll show you exactly how your AI clone will look, sound, and scale your marketing—no camera required.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-4 reveal">
+        <a href="#" class="btn-primary text-base magnetic" data-hover>
+          Book a strategy call
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+
+
+<script type="module">
+import * as THREE from 'three';
+
+// ============ Custom cursor ============
+const dot = document.getElementById('cursorDot');
+const ring = document.getElementById('cursorRing');
+let mx = window.innerWidth/2, my = window.innerHeight/2;
+let rx = mx, ry = my;
+window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+function animateCursor(){
+  rx += (mx - rx) * 0.18;
+  ry += (my - ry) * 0.18;
+  dot.style.transform = `translate(${mx}px, ${my}px) translate(-50%,-50%)`;
+  ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%,-50%)`;
+  requestAnimationFrame(animateCursor);
+}
+animateCursor();
+document.querySelectorAll('[data-hover]').forEach(el => {
+  el.addEventListener('mouseenter', () => ring.classList.add('hover'));
+  el.addEventListener('mouseleave', () => ring.classList.remove('hover'));
+});
+
+// ============ Scroll progress + nav ============
+const progress = document.getElementById('scrollProgress');
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  const p = (window.scrollY / h) * 100;
+  progress.style.width = p + '%';
+  nav.classList.toggle('scrolled', window.scrollY > 30);
+});
+
+// ============ Reveal on scroll ============
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }});
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach((el, i) => {
+  el.style.transitionDelay = (i % 4) * 80 + 'ms';
+  io.observe(el);
+});
+
+// ============ Magnetic buttons ============
+document.querySelectorAll('.magnetic').forEach(el => {
+  el.addEventListener('mousemove', (e) => {
+    const r = el.getBoundingClientRect();
+    const x = e.clientX - r.left - r.width/2;
+    const y = e.clientY - r.top - r.height/2;
+    el.style.transform = `translate(${x*0.15}px, ${y*0.2}px)`;
+  });
+  el.addEventListener('mouseleave', () => { el.style.transform = ''; });
+});
+
+// ============ Animated counters ============
+const counterIO = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      const el = e.target;
+      const target = parseInt(el.dataset.count);
+      const prefix = el.textContent.startsWith('$') ? '$' : '';
+      const suffix = el.textContent.includes('M+') ? 'M+' : el.textContent.includes('x') ? 'x' : el.textContent.includes('+') ? '+' : el.textContent.includes('%') ? '%' : '';
+      let cur = 0;
+      const step = Math.max(1, Math.floor(target / 40));
+      const t = setInterval(() => {
+        cur += step;
+        if(cur >= target){ cur = target; clearInterval(t); }
+        el.textContent = prefix + cur + suffix;
+      }, 30);
+      counterIO.unobserve(el);
+    }
+  });
+}, { threshold: 0.4 });
+document.querySelectorAll('[data-count]').forEach(el => counterIO.observe(el));
+
+// ============ CLONE PAGE LOGIC ============
+const clonePage = document.getElementById('clone-page');
+const openCloneBtns = [document.getElementById('open-clone-card'), document.getElementById('open-clone-hero'), document.getElementById('footer-clone-link')];
+const closeCloneBtn = document.getElementById('close-clone-page');
+
+openCloneBtns.forEach(btn => {
+  if(btn) {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      clonePage.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      clonePage.scrollTop = 0;
+      // Re-init icons in case they didn't render
+      lucide.createIcons();
+      // Trigger reveal animations inside clone page
+      const cloneReveals = clonePage.querySelectorAll('.reveal');
+      cloneReveals.forEach((el, i) => {
+        el.classList.remove('in');
+        setTimeout(() => el.classList.add('in'), 100 + i * 50);
+      });
+    });
+  }
+});
+
+if(closeCloneBtn) {
+  closeCloneBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    clonePage.classList.remove('active');
+    document.body.style.overflow = 'auto';
+  });
+}
+
+// ============ Terminal demo (Clone Page) ============
+const termLines = [
+  { type:'meta', text:'[10:32:01] Inbound content request: "Promote new Q4 roofing discount"' },
+  { type:'meta', text:'[engine] retrieving brand voice → offer_db · audience_personas' },
+  { type:'meta', text:'[engine] generating script → hook: "Stop paying full price for roof repairs..."' },
+  { type:'ai', text:'"Hey guys, if you\'re in Austin and your roof is over 10 years old, you need to hear this..."' },
+  { type:'meta', text:'[engine] script approved · mapping phonemes → clone_id: owner_001' },
+  { type:'meta', text:'[engine] rendering video → 1080p · 30fps · lip_sync: enabled' },
+  { type:'meta', text:'[engine] video rendered in 4.2s · file_id: vid_9921.mp4' },
+  { type:'meta', text:'[engine] publishing → tiktok · instagram_reels · youtube_shorts' },
+  { type:'meta', text:'[10:32:08] action completed · status: live · expected_reach: 15,000' },
+];
+
+const termBody = document.getElementById('terminalBodyClone');
+let termIdx = 0;
+function typeNext(){
+  if(termIdx >= termLines.length){
+    setTimeout(() => {
+      termBody.innerHTML = '';
+      termIdx = 0;
+      typeNext();
+    }, 4500);
+    return;
+  }
+  const line = termLines[termIdx];
+  const div = document.createElement('div');
+  div.className = 'term-line';
+  let prefix = '';
+  if(line.type === 'meta') prefix = '<span class="term-meta">' + line.text + '</span>';
+  else if(line.type === 'user') prefix = '<span class="term-prompt">user &gt;</span> <span class="term-user">' + line.text + '</span>';
+  else prefix = '<span class="term-prompt">clone &gt;</span> <span class="term-ai">' + line.text + '</span>';
+  div.innerHTML = prefix;
+  termBody.appendChild(div);
+  termBody.scrollTop = termBody.scrollHeight;
+  termIdx++;
+  setTimeout(typeNext, line.type === 'meta' ? 500 : 1100);
+}
+
+// Start terminal when visible
+const termIO = new IntersectionObserver((entries) => {
+  if(entries[0].isIntersecting){ typeNext(); termIO.disconnect(); }
+}, { threshold: 0.3 });
+if(termBody) termIO.observe(termBody);
+
+// ============ Three.js hero ============
+const canvas = document.getElementById('hero-canvas');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
+camera.position.z = 8;
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+// Particle sphere
+const particleCount = 1400;
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+const sizes = new Float32Array(particleCount);
+const accentColor = new THREE.Color('#d4ff3a');
+const warmColor = new THREE.Color('#ff7849');
+const baseColor = new THREE.Color('#f4f4ef');
+
+for(let i = 0; i < particleCount; i++){
+  const theta = Math.random() * Math.PI * 2;
+  const phi = Math.acos(2 * Math.random() - 1);
+  const r = 4 + (Math.random() - 0.5) * 0.6;
+  positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+  positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+  positions[i*3+2] = r * Math.cos(phi);
+
+  const t = Math.random();
+  let c;
+  if(t < 0.08) c = accentColor;
+  else if(t < 0.13) c = warmColor;
+  else c = baseColor.clone().multiplyScalar(0.5 + Math.random()*0.5);
+  colors[i*3] = c.r;
+  colors[i*3+1] = c.g;
+  colors[i*3+2] = c.b;
+  sizes[i] = Math.random() * 0.04 + 0.015;
+}
+
+const geo = new THREE.BufferGeometry();
+geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geo.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+
+const mat = new THREE.ShaderMaterial({
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: `
+    attribute vec3 aColor;
+    attribute float aSize;
+    varying vec3 vColor;
+    uniform float uTime;
+    void main(){
+      vColor = aColor;
+      vec3 pos = position;
+      float n = sin(uTime * 0.5 + pos.x * 2.0 + pos.y * 1.5) * 0.08;
+      pos += normalize(pos) * n;
+      vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+      gl_PointSize = aSize * 300.0 / -mv.z;
+      gl_Position = projectionMatrix * mv;
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vColor;
+    void main(){
+      float d = length(gl_PointCoord - vec2(0.5));
+      if(d > 0.5) discard;
+      float a = smoothstep(0.5, 0.0, d);
+      gl_FragColor = vec4(vColor, a);
+    }
+  `,
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending
+});
+
+const points = new THREE.Points(geo, mat);
+scene.add(points);
+
+// Connection lines
+const lineCount = 90;
+const linePositions = new Float32Array(lineCount * 6);
+for(let i = 0; i < lineCount; i++){
+  const a = Math.floor(Math.random() * particleCount);
+  let b = Math.floor(Math.random() * particleCount);
+  const ap = new THREE.Vector3(positions[a*3], positions[a*3+1], positions[a*3+2]);
+  let bestIdx = b, bestDist = Infinity;
+  for(let k = 0; k < 20; k++){
+    const cand = Math.floor(Math.random() * particleCount);
+    if(cand === a) continue;
+    const cp = new THREE.Vector3(positions[cand*3], positions[cand*3+1], positions[cand*3+2]);
+    const d = ap.distanceTo(cp);
+    if(d < bestDist && d < 1.2){ bestDist = d; bestIdx = cand; }
+  }
+  linePositions[i*6] = positions[a*3];
+  linePositions[i*6+1] = positions[a*3+1];
+  linePositions[i*6+2] = positions[a*3+2];
+  linePositions[i*6+3] = positions[bestIdx*3];
+  linePositions[i*6+4] = positions[bestIdx*3+1];
+  linePositions[i*6+5] = positions[bestIdx*3+2];
+}
+const lineGeo = new THREE.BufferGeometry();
+lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+const lineMat = new THREE.LineBasicMaterial({ color: 0xd4ff3a, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending });
+const lines = new THREE.LineSegments(lineGeo, lineMat);
+scene.add(lines);
+
+// Inner glow sphere
+const glowGeo = new THREE.SphereGeometry(1.2, 32, 32);
+const glowMat = new THREE.ShaderMaterial({
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: `
+    varying vec3 vNormal;
+    varying vec3 vPos;
+    void main(){
+      vNormal = normalize(normalMatrix * normal);
+      vPos = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vNormal;
+    varying vec3 vPos;
+    uniform float uTime;
+    void main(){
+      float fres = pow(1.0 - abs(vNormal.z), 2.0);
+      vec3 col = mix(vec3(0.83, 1.0, 0.23), vec3(1.0, 0.47, 0.29), sin(uTime * 0.4 + vPos.x) * 0.5 + 0.5);
+      gl_FragColor = vec4(col * fres, fres * 0.4);
+    }
+  `,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false
+});
+const glow = new THREE.Mesh(glowGeo, glowMat);
+scene.add(glow);
+
+// Mouse parallax
+let mouseX = 0, mouseY = 0;
+let targetRotX = 0, targetRotY = 0;
+window.addEventListener('mousemove', (e) => {
+  mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+  mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+  targetRotY = mouseX * 0.4;
+  targetRotX = mouseY * 0.3;
+});
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Animate
+const clock = new THREE.Clock();
+function animate(){
+  const t = clock.getElapsedTime();
+  mat.uniforms.uTime.value = t;
+  glowMat.uniforms.uTime.value = t;
+
+  points.rotation.y += 0.0015;
+  points.rotation.x += 0.0005;
+  lines.rotation.copy(points.rotation);
+  glow.rotation.copy(points.rotation);
+
+  scene.rotation.y += (targetRotY - scene.rotation.y) * 0.02;
+  scene.rotation.x += (targetRotX - scene.rotation.x) * 0.02;
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+// Init icons
+lucide.createIcons();
+</script>
+</body>
+</html>
